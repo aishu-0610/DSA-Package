@@ -5,27 +5,60 @@
 using namespace std;
 
 const int MAX_COURSES = 500;
+const int CODE_LEN = 10;
+const int NAME_LEN = 100;
 
 struct Course {
-    char code[10];
-    char name[100];
-    char prereqCodes[10][10];
-    char prereqNames[10][100];
-    int prereqCount;
+    char code[CODE_LEN];
+    char name[NAME_LEN];
     int semester;
+};
+
+struct Node {
+    int courseIndex;
+    Node* next;
 };
 
 class CourseGraph {
     Course courseList[MAX_COURSES];
+    Node* adjList[MAX_COURSES];
     int courseCount;
 
 public:
     CourseGraph() {
         courseCount = 0;
+        for (int i = 0; i < MAX_COURSES; i++) {
+            adjList[i] = nullptr;
+        }
+    }
+
+    ~CourseGraph() {
+        for (int i = 0; i < MAX_COURSES; i++) {
+            Node* curr = adjList[i];
+            while (curr) {
+                Node* temp = curr;
+                curr = curr->next;
+                delete temp;
+            }
+        }
+    }
+
+    int findCourseIndex(const char* code) {
+        for (int i = 0; i < courseCount; i++) {
+            if (strcmp(courseList[i].code, code) == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     void addCourse(const Course& c) {
         courseList[courseCount++] = c;
+    }
+
+    void addPrerequisite(int courseIdx, int prereqIdx) {
+        Node* newNode = new Node{prereqIdx, adjList[courseIdx]};
+        adjList[courseIdx] = newNode;
     }
 
     void loadCoursesFromFile(const char* filename, int semester) {
@@ -38,96 +71,85 @@ public:
 
             Course c;
             stringstream ss(line);
-            string code, name, prereqCodeStr, prereqNameStr;
+            string code, name, prereqCodeStr;
 
             getline(ss, code, '|');
             getline(ss, name, '|');
             getline(ss, prereqCodeStr, '|');
-            getline(ss, prereqNameStr);
 
-            strncpy(c.code, code.c_str(), sizeof(c.code));
-            strncpy(c.name, name.c_str(), sizeof(c.name));
+            strncpy(c.code, code.c_str(), CODE_LEN);
+            strncpy(c.name, name.c_str(), NAME_LEN);
             c.semester = semester;
 
-            c.prereqCount = 0;
-            if (prereqCodeStr != "NA") {
-                size_t pos = 0, lastPos = 0;
-                size_t posName = 0, lastPosName = 0;
-                int i = 0;
-
-                while ((pos = prereqCodeStr.find(',', lastPos)) != string::npos &&
-                       (posName = prereqNameStr.find(',', lastPosName)) != string::npos) {
-                    string pc = prereqCodeStr.substr(lastPos, pos - lastPos);
-                    string pn = prereqNameStr.substr(lastPosName, posName - lastPosName);
-                    strncpy(c.prereqCodes[i], pc.c_str(), sizeof(c.prereqCodes[i]));
-                    strncpy(c.prereqNames[i], pn.c_str(), sizeof(c.prereqNames[i]));
-                    lastPos = pos + 1;
-                    lastPosName = posName + 1;
-                    i++;
-                }
-
-                if (lastPos < prereqCodeStr.length() && lastPosName < prereqNameStr.length()) {
-                    strncpy(c.prereqCodes[i], prereqCodeStr.substr(lastPos).c_str(), sizeof(c.prereqCodes[i]));
-                    strncpy(c.prereqNames[i], prereqNameStr.substr(lastPosName).c_str(), sizeof(c.prereqNames[i]));
-                    i++;
-                }
-
-                c.prereqCount = i;
-            }
-
+            int indexBeforeAdd = courseCount;
             addCourse(c);
-        }
 
+            int courseIdx = indexBeforeAdd;
+            if (prereqCodeStr != "NA") {
+                size_t lastPos = 0, pos;
+                while ((pos = prereqCodeStr.find(',', lastPos)) != string::npos) {
+                    string prereqCode = prereqCodeStr.substr(lastPos, pos - lastPos);
+                    int prereqIdx = findCourseIndex(prereqCode.c_str());
+                    if (prereqIdx == -1) {
+                        Course dummy;
+                        strncpy(dummy.code, prereqCode.c_str(), CODE_LEN);
+                        strncpy(dummy.name, "Unknown", NAME_LEN);
+                        dummy.semester = 0;
+                        prereqIdx = courseCount;
+                        addCourse(dummy);
+                    }
+                    addPrerequisite(courseIdx, prereqIdx);
+                    lastPos = pos + 1;
+                }
+                if (lastPos < prereqCodeStr.length()) {
+                    string prereqCode = prereqCodeStr.substr(lastPos);
+                    int prereqIdx = findCourseIndex(prereqCode.c_str());
+                    if (prereqIdx == -1) {
+                        Course dummy;
+                        strncpy(dummy.code, prereqCode.c_str(), CODE_LEN);
+                        strncpy(dummy.name, "Unknown", NAME_LEN);
+                        dummy.semester = 0;
+                        prereqIdx = courseCount;
+                        addCourse(dummy);
+                    }
+                    addPrerequisite(courseIdx, prereqIdx);
+                }
+            }
+        }
         file.close();
     }
 
     void displaySemesterCourses(int semester) {
         cout << "\nCourses in Semester " << semester << ":\n";
-        for (int i = 0; i < courseCount; ++i) {
+        for (int i = 0; i < courseCount; i++) {
             if (courseList[i].semester == semester) {
                 cout << courseList[i].code << " - " << courseList[i].name << endl;
             }
         }
     }
 
-   void displayElectives(const char* prefix) {
-    for (int i = 0; i < courseCount; ++i) {
-        if (strncmp(courseList[i].code, prefix, strlen(prefix)) == 0 &&
-            strcmp(courseList[i].code, "23XTE_") != 0 &&
-            strcmp(courseList[i].code, "23XTO_") != 0) {
-            cout << courseList[i].code << " - " << courseList[i].name << endl;
+    void displayElectives(const char* prefix) {
+        for (int i = 0; i < courseCount; i++) {
+            if (strncmp(courseList[i].code, prefix, strlen(prefix)) == 0 &&
+                strcmp(courseList[i].code, "23XTE_") != 0 &&
+                strcmp(courseList[i].code, "23XTO_") != 0) {
+                cout << courseList[i].code << " - " << courseList[i].name << endl;
+            }
         }
     }
-}
-
-    int findCourseIndex(const char* code) {
-    for (int i = 0; i < courseCount; ++i) {
-        if (strcmp(courseList[i].code, code) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
 
     void printPrerequisites(const char* code, int level = 0) {
-    if (strcmp(code, "NA") == 0) return;
+        int index = findCourseIndex(code);
+        if (index == -1) {
+            cout << string(level * 4, ' ') << "Course not found: " << code << endl;
+            return;
+        }
 
-    int index = findCourseIndex(code);
-    if (index == -1) {
-        cout << string(level * 4, ' ') << "Course not found: " << code << endl;
-        return;    }
-
-    const Course& course = courseList[index];
-    cout << string(level * 4, ' ') << course.code << " - " << course.name << endl;
-
-    for (int i = 0; i < course.prereqCount; i++) {
-        if (strcmp(course.prereqCodes[i], "NA") == 0) {
-            cout << string((level + 1) * 4, ' ') << course.prereqNames[i] << endl;
-        } else {
-            printPrerequisites(course.prereqCodes[i], level + 1);
+        cout << string(level * 4, ' ') << courseList[index].code << " - " << courseList[index].name << endl;
+        for (Node* curr = adjList[index]; curr != nullptr; curr = curr->next) {
+            printPrerequisites(courseList[curr->courseIndex].code, level + 1);
         }
     }
-}
 };
 
 int main() {
@@ -154,7 +176,7 @@ int main() {
 
     if (semester == 7 || semester == 10) return 0;
 
-    char code[10];
+    char code[CODE_LEN];
     cout << "Enter course code to print prerequisites (or 'E' for electives): ";
     cin >> code;
 
@@ -182,7 +204,6 @@ int main() {
 
     return 0;
 }
-
 
 
 
