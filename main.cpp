@@ -123,11 +123,15 @@ public:
 
     void displayElectives(const char* prefix) {
         for (int i = 0; i < courseCount; i++) {
-            if (strncmp(courseList[i].code, prefix, strlen(prefix)) == 0) {
-                cout << courseList[i].code << " - " << courseList[i].name << endl;
-            }
+            if (strncmp(courseList[i].code, "23XTE_", 6) == 0 || strncmp(courseList[i].code, "23XTO_", 6) == 0) {
+                continue;
+        }
+        if (strncmp(courseList[i].code, prefix, strlen(prefix)) == 0) {
+            cout << courseList[i].code << " - " << courseList[i].name << endl;
         }
     }
+}
+
 
     void printPrerequisites(const char* code, int level = 0) {
         int index = findCourseIndex(code);
@@ -163,46 +167,55 @@ int main() {
     graph.loadCoursesFromFile("professional_electives.txt", 0);
     graph.loadCoursesFromFile("open_electives.txt", 0);
 
-    int semester;
-    cout << "Enter semester number (1-10): ";
-    cin >> semester;
 
-    if (semester < 1 || semester > 10) return 0;
-
-    graph.displaySemesterCourses(semester);
-
-    if (semester == 7 || semester == 10) return 0;
 
     char code[CODE_LEN];
-    cout << "Enter course code to print prerequisites (or 'E' for electives): ";
-    cin >> code;
+    cout << "Choose the type of courses for prerequisites:\n";
+    cout << "1. Semester Courses\n2. Professional Electives\n3. Open Electives\n";
+    cout << "Enter choice: ";
 
-    if (strcmp(code, "E") == 0) {
-        int choice;
-        cout << "\n1. Professional Electives\n2. Open Electives\nEnter choice: ";
-        cin >> choice;
+    int choice;
+    cin >> choice;
 
-        if (choice == 1) {
+    switch (choice) {
+        case 1:
+             int semester;
+             cout << "Enter semester number (1-10): ";
+             cin >> semester;
+
+            if (semester < 1 || semester > 10) return 0;
+
+            graph.displaySemesterCourses(semester);
+
+            if (semester == 7 || semester == 10) return 0;
+
+            cout << "\nEnter course code for Semester Courses: ";
+            cin >> code;
+            cout << "\nPrerequisite Graph for Semester Course:\n";
+            graph.printPrerequisites(code);
+            break;
+        case 2:
             cout << "\nProfessional Electives:\n";
             graph.displayElectives("23XTE");
-        } else if (choice == 2) {
+            cout << "\nEnter elective course code to see prerequisites: ";
+            cin >> code;
+            cout << "\nPrerequisite Graph for Professional Elective:\n";
+            graph.printPrerequisites(code);
+            break;
+        case 3:
             cout << "\nOpen Electives:\n";
             graph.displayElectives("23XTO");
-        } else {
+            cout << "\nEnter elective course code to see prerequisites: ";
+            cin >> code;
+            cout << "\nPrerequisite Graph for Open Elective:\n";
+            graph.printPrerequisites(code);
+            break;
+        default:
+            cout << "Invalid choice!\n";
             return 0;
-        }
-
-        cout << "\nEnter elective course code to see prerequisites: ";
-        cin >> code;
     }
-
-    cout << "\nPrerequisite Graph:\n";
-    graph.printPrerequisites(code);
 
     return 0;
 }
-
-
-
 
 
