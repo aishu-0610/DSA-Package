@@ -123,7 +123,7 @@ public:
 
     void displayElectives(const char* prefix) {
         for (int i = 0; i < courseCount; i++) {
-            if (strncmp(courseList[i].code, "23XTE_", 6) == 0 || strncmp(courseList[i].code, "23XTO_", 6) == 0) {
+            if (strncmp(courseList[i].code, "23XTE_", 6) == 0 || strncmp(courseList[>
                 continue;
         }
         if (strncmp(courseList[i].code, prefix, strlen(prefix)) == 0) {
@@ -137,7 +137,7 @@ public:
         int index = findCourseIndex(code);
         if (index == -1) return;
 
-        cout << string(level * 4, ' ') << "- " << courseList[index].code << " " << courseList[index].name << endl;
+        cout << string(level * 4, ' ') << "- " << courseList[index].code << " " << c>
         bool hasPrereq = false;
         for (Node* curr = adjList[index]; curr != nullptr; curr = curr->next) {
             hasPrereq = true;
@@ -183,11 +183,17 @@ int main() {
              cout << "Enter semester number (1-10): ";
              cin >> semester;
 
-            if (semester < 1 || semester > 10) return 0;
+            if (semester < 1 || semester > 10){
+                cout<<"Invalid choice!\n";
+                break;
+            }
 
             graph.displaySemesterCourses(semester);
 
-            if (semester == 7 || semester == 10) return 0;
+            if (semester == 7 || semester == 10){
+                cout<<"Project work - Industry/Research project\n";
+                break;
+            }
 
             cout << "\nEnter course code for Semester Courses: ";
             cin >> code;
@@ -217,5 +223,8 @@ int main() {
 
     return 0;
 }
+
+
+
 
 
